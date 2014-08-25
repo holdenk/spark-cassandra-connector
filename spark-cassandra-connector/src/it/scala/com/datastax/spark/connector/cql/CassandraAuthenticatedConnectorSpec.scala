@@ -1,13 +1,12 @@
 package com.datastax.spark.connector.cql
 
-import java.net.InetAddress
 import com.datastax.spark.connector.testkit.CassandraServer
-import org.scalatest.{Matchers, FlatSpec}
+import org.scalatest.{FlatSpec, Matchers}
 
 class CassandraAuthenticatedConnectorSpec  extends FlatSpec with Matchers with CassandraServer {
 
   useCassandraConfig("cassandra-password-auth.yaml.template")
-  val conn = CassandraConnector(cassandraHost, authConf = PasswordAuthConf("cassandra", "cassandra"))
+  val conn = CassandraConnector(cassandraHost, configurator = PasswordAuthConfigurator("cassandra", "cassandra"))
 
   // Wait for the default user to be created in Cassandra.
   Thread.sleep(1000)

@@ -11,14 +11,14 @@ To connect your Spark application to Cassandra, set connection options in the
 from the spark-shell and set within the $SPARK_HOME/conf/spark-default.conf.
 The following options are available:
 
-Property name                            | Description                                       | Default value
------------------------------------------|---------------------------------------------------|--------------------
-spark.cassandra.connection.host          | contact point to connect to the Cassandra cluster | address of the Spark master host
-spark.cassandra.connection.rpc.port      | Cassandra thrift port                             | 9160
-spark.cassandra.connection.native.port   | Cassandra native port                             | 9042
-spark.cassandra.auth.username            | login name for password authentication            |
-spark.cassandra.auth.password            | password for password authentication              |
-spark.cassandra.auth.conf.factory.class  | name of the class implementing `AuthConfFactory` providing custom authentication | `DefaultAuthConfFactory`
+Property name                                  | Description                                       | Default value
+-----------------------------------------------|---------------------------------------------------|--------------------
+spark.cassandra.connection.host                | contact point to connect to the Cassandra cluster | address of the Spark master host
+spark.cassandra.connection.rpc.port            | Cassandra thrift port                             | 9160
+spark.cassandra.connection.native.port         | Cassandra native port                             | 9042
+spark.cassandra.auth.username                  | login name for password authentication            |
+spark.cassandra.auth.password                  | password for password authentication              |
+spark.cassandra.connection.conf.factory.class  | name of the class implementing `ConnectionConfiguratorFactory` providing custom connection configurator | `DefaultConnConfFactory`
   
 Example:
 
@@ -81,3 +81,4 @@ CassandraConnector(conf).withSessionDo { session =>
 ```
 
 [Next - Accessing data](2_loading.md)                                        
+
