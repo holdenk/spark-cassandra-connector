@@ -1,6 +1,10 @@
 1.1.0
  * Allow multiple comma-separated hosts in spark.cassandra.connection.host
  * Add indexedColumn to ColumnDef (#122)
+ * Upgrade Spark to version 1.0.2 
+   Remove deprecated toArray, replaced with collect.
+   Update imports to org.apache.spark.streaming.receiver
+   and import org.apache.spark.streaming.receiver.ActorHelper
 
 1.0.0
  * Add toMap and nameOf methods to CassandraRow.
