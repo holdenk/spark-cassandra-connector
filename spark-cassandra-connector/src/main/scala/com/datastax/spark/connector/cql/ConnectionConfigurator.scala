@@ -1,10 +1,13 @@
 package com.datastax.spark.connector.cql
 
-import com.datastax.driver.core.{AuthProvider, PlainTextAuthProvider, Cluster}
+import java.net.InetAddress
+
 import com.datastax.driver.core.Cluster.Builder
-import org.apache.cassandra.thrift.{TFramedTransportFactory, ITransportFactory, AuthenticationRequest, Cassandra}
-import org.apache.cassandra.thrift.Cassandra.Iface
+import com.datastax.driver.core.{AuthProvider, Cluster, PlainTextAuthProvider}
+import org.apache.cassandra.thrift.{AuthenticationRequest, Cassandra, TFramedTransportFactory}
 import org.apache.spark.SparkConf
+import org.apache.thrift.protocol.TBinaryProtocol
+import org.apache.thrift.transport.TTransport
 
 import scala.collection.JavaConversions._
 
@@ -15,25 +18,22 @@ import scala.collection.JavaConversions._
   * option. See [[ConnectionConfiguratorFactory]]. */
 trait ConnectionConfigurator extends Serializable {
 
+  /** Creates and configures a Thrift client.
+    * To be removed in the near future, when the dependency from Thrift will be completely dropped. */
+  def createThriftClient(hostAddress: InetAddress, rpcPort: Int): (Cassandra.Iface, TTransport) = {
+    val transportFactory = new TFramedTransportFactory
+    val transport = transportFactory.openTransport(hostAddress.getHostAddress, rpcPort)
+    val client = new Cassandra.Client(new TBinaryProtocol(transport))
+    (client, transport)
+  }
+
   /** Sets appropriate connection options for native connections. */
   def configureClusterBuilder(builder: Cluster.Builder): Cluster.Builder
-  
-  /** Returns the transport factory for creating thrift transports.
-    * Some authentication mechanisms like SASL require custom thrift transport.
-    * To be removed in the near future, when the dependency from Thrift will be completely dropped. */
-  def transportFactory: ITransportFactory
-
-  /** Sets appropriate authentication options for Thrift connection.
-    * To be removed in the near future, when the dependency from Thrift will be completely dropped. */
-  def configureThriftClient(client: Cassandra.Iface)
 
 }
 
 /** Performs no authentication. Use with `AllowAllAuthenticator` in Cassandra. */
 case object NoAuthConfigurator extends ConnectionConfigurator {
-  override def transportFactory = new TFramedTransportFactory
-  override def configureThriftClient(client: Iface) {}
-
   override def configureClusterBuilder(builder: Builder): Builder = {
     builder.withAuthProvider(AuthProvider.NONE)
   }
@@ -41,11 +41,11 @@ case object NoAuthConfigurator extends ConnectionConfigurator {
 
 /** Performs plain-text password authentication. Use with `PasswordAuthenticator` in Cassandra. */
 case class PasswordAuthConfigurator(user: String, password: String) extends ConnectionConfigurator {
-  override def transportFactory = new TFramedTransportFactory
-
-  override def configureThriftClient(client: Iface) = {
+  override def createThriftClient(hostAddress: InetAddress, rpcPort: Int) = {
+    val (client, transport) = super.createThriftClient(hostAddress, rpcPort)
     val authRequest = new AuthenticationRequest(Map("username" -> user, "password" -> password))
     client.login(authRequest)
+    (client, transport)
   }
 
   override def configureClusterBuilder(builder: Builder): Builder = {
@@ -60,14 +60,14 @@ trait ConnectionConfiguratorFactory {
 
 /** Default `ConnectionConfiguratorFactory` that supports no authentication or password authentication.
   * Password authentication is enabled when both `spark.cassandra.auth.username` and `spark.cassandra.auth.password`
-  * options are present in `SparkConf`.*/
+  * options are present in `SparkConf`. */
 class DefaultConnConfFactory extends ConnectionConfiguratorFactory {
 
   val CassandraUserNameProperty = "spark.cassandra.auth.username"
   val CassandraPasswordProperty = "spark.cassandra.auth.password"
 
   def configurator(conf: SparkConf): ConnectionConfigurator = {
-    val credentials = 
+    val credentials =
       for (username <- conf.getOption(CassandraUserNameProperty);
            password <- conf.getOption(CassandraPasswordProperty)) yield (username, password)
 

@@ -123,10 +123,7 @@ class CassandraConnector(conf: CassandraConnectorConf)
 
   /** Opens a Thrift client to the given host. Don't use it unless you really know what you are doing. */
   def createThriftClient(host: InetAddress): CassandraClientProxy = {
-    val transportFactory = conf.configurator.transportFactory
-    val transport = transportFactory.openTransport(host.getHostAddress, rpcPort)
-    val client = new Cassandra.Client(new TBinaryProtocol.Factory().getProtocol(transport))
-    conf.configurator.configureThriftClient(client)
+    val (client, transport) = conf.configurator.createThriftClient(host, rpcPort)
     CassandraClientProxy.wrap(client, transport)
   }
 
